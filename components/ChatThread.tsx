@@ -6,33 +6,34 @@ import ChatBubble from "./ChatBubble";
 import { renderToolCard } from "./ToolCards";
 import { VoiceMessage, VoiceState } from "@/hooks/useVoiceAgent";
 
+export type TimelineEntry =
+    | { kind: "chat"; message: UIMessage }
+    | { kind: "voice"; message: VoiceMessage };
+
 interface ChatThreadProps {
-    messages: UIMessage[];
+    timeline: TimelineEntry[];
     isLoading: boolean;
-    voiceMessages?: VoiceMessage[];
+    lastChatRole?: string;
     voiceState?: VoiceState;
     mapsKey?: string;
 }
 
 export default function ChatThread({
-    messages,
+    timeline,
     isLoading,
-    voiceMessages = [],
+    lastChatRole,
     voiceState = "idle",
     mapsKey,
 }: ChatThreadProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom when messages or voice messages change
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading, voiceMessages]);
-
-    const hasAnyMessages = messages.length > 0 || voiceMessages.length > 0;
+    }, [timeline, isLoading]);
 
     return (
         <div className="chat-thread">
-            {!hasAnyMessages && (
+            {timeline.length === 0 && (
                 <div className="chat-welcome">
                     <h2>What can I help with?</h2>
                     <p>
@@ -42,11 +43,28 @@ export default function ChatThread({
                 </div>
             )}
 
-            {messages.map((message) => (
-                <ChatBubble key={message.id} message={message} mapsKey={mapsKey} />
-            ))}
+            {timeline.map((entry) => {
+                if (entry.kind === "chat") {
+                    return (
+                        <ChatBubble
+                            key={entry.message.id}
+                            message={entry.message}
+                            mapsKey={mapsKey}
+                        />
+                    );
+                }
+                const vm = entry.message;
+                return (
+                    <div key={vm.id} className={`chat-bubble ${vm.role === "user" ? "user" : "assistant"}`}>
+                        <div className="bubble-content">
+                            {vm.toolCard && renderToolCard(vm.toolCard.toolName, vm.toolCard.data, mapsKey)}
+                            {vm.text && <div className="bubble-text">{vm.text}</div>}
+                        </div>
+                    </div>
+                );
+            })}
 
-            {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+            {isLoading && lastChatRole === "user" && (
                 <div className="chat-bubble assistant">
                     <div className="bubble-content">
                         <div className="loading-dots">
@@ -58,17 +76,6 @@ export default function ChatThread({
                 </div>
             )}
 
-            {/* Voice conversation messages */}
-            {voiceMessages.map((vm) => (
-                <div key={vm.id} className={`chat-bubble ${vm.role === "user" ? "user" : "assistant"}`}>
-                    <div className="bubble-content">
-                        {vm.toolCard && renderToolCard(vm.toolCard.toolName, vm.toolCard.data, mapsKey)}
-                        {vm.text && <div className="bubble-text">{vm.text}</div>}
-                    </div>
-                </div>
-            ))}
-
-            {/* Voice thinking indicator */}
             {voiceState === "thinking" && (
                 <div className="chat-bubble assistant">
                     <div className="bubble-content">

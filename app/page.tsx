@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ChatThread from "@/components/ChatThread";
+import type { TimelineEntry } from "@/components/ChatThread";
 import MessageInput from "@/components/MessageInput";
 import QuickActions from "@/components/QuickActions";
 import { useVoiceAgent, VoiceName } from "@/hooks/useVoiceAgent";
@@ -43,7 +44,6 @@ export default function Home() {
 
   const voiceAgent = useVoiceAgent(selectedVoice, personality, getKeyHeaders);
 
-  // Stable ref for getKeyHeaders so transport doesn't recreate
   const keyHeadersRef = useRef(getKeyHeaders);
   keyHeadersRef.current = getKeyHeaders;
 
@@ -102,12 +102,66 @@ export default function Home() {
     [sendMessage]
   );
 
+  // ─── Unified Timeline ──────────────────────────────────────
+  // Track which chat message IDs we've already added to the timeline
+  // so new chat messages are appended at the correct position relative
+  // to voice messages (instead of always rendering above them).
+
+  const timelineRef = useRef<TimelineEntry[]>([]);
+  const knownChatIdsRef = useRef(new Set<string>());
+  const knownVoiceIdsRef = useRef(new Set<string>());
+
+  const timeline = useMemo(() => {
+    const tl = [...timelineRef.current];
+
+    // Append any new chat messages
+    for (const m of messages) {
+      if (!knownChatIdsRef.current.has(m.id)) {
+        knownChatIdsRef.current.add(m.id);
+        tl.push({ kind: "chat", message: m });
+      }
+    }
+
+    // Append any new voice messages
+    for (const vm of voiceAgent.voiceMessages) {
+      if (!knownVoiceIdsRef.current.has(vm.id)) {
+        knownVoiceIdsRef.current.add(vm.id);
+        tl.push({ kind: "voice", message: vm });
+      }
+    }
+
+    // Update existing chat entries with latest message state (streaming content)
+    for (let i = 0; i < tl.length; i++) {
+      if (tl[i].kind === "chat") {
+        const fresh = messages.find((m) => m.id === tl[i].message.id);
+        if (fresh) tl[i] = { kind: "chat", message: fresh };
+      }
+    }
+
+    // Remove chat entries that no longer exist (e.g. if chat was reset)
+    const currentChatIds = new Set(messages.map((m) => m.id));
+    const currentVoiceIds = new Set(voiceAgent.voiceMessages.map((m) => m.id));
+    const filtered = tl.filter((entry) => {
+      if (entry.kind === "chat") return currentChatIds.has(entry.message.id);
+      return currentVoiceIds.has(entry.message.id);
+    });
+
+    // Sync known IDs with what actually remains
+    knownChatIdsRef.current = new Set(messages.map((m) => m.id));
+    knownVoiceIdsRef.current = new Set(voiceAgent.voiceMessages.map((m) => m.id));
+
+    timelineRef.current = filtered;
+    return filtered;
+  }, [messages, voiceAgent.voiceMessages]);
+
+  const lastChatRole = messages.length > 0 ? messages[messages.length - 1].role : undefined;
+
   return (
     <main className="chat-container">
       <ChatThread
-        messages={messages}
+        timeline={timeline}
         isLoading={isLoading}
-        voiceMessages={voiceAgent.voiceMessages}
+        lastChatRole={lastChatRole}
         voiceState={voiceActive ? voiceAgent.state : "idle"}
         mapsKey={mapsKey}
       />
