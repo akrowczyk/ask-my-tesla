@@ -130,11 +130,14 @@ export default function Home() {
       }
     }
 
-    // Update existing chat entries with latest message state (streaming content)
+    // Update existing entries with latest state (streaming content)
     for (let i = 0; i < tl.length; i++) {
       if (tl[i].kind === "chat") {
         const fresh = messages.find((m) => m.id === tl[i].message.id);
         if (fresh) tl[i] = { kind: "chat", message: fresh };
+      } else {
+        const fresh = voiceAgent.voiceMessages.find((m) => m.id === tl[i].message.id);
+        if (fresh) tl[i] = { kind: "voice", message: fresh };
       }
     }
 
