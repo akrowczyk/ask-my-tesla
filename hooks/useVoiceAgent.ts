@@ -82,6 +82,9 @@ export function useVoiceAgent(voice: VoiceName = "Rex", personality: Personality
     const micMutedRef = useRef(false);
     const speakerMutedRef = useRef(false);
 
+    const getKeyHeadersRef = useRef(getKeyHeaders);
+    getKeyHeadersRef.current = getKeyHeaders;
+
     // Keep latest values in refs so `connect` always reads current state
     const voiceRef = useRef(voice);
     voiceRef.current = voice;
@@ -189,7 +192,7 @@ export function useVoiceAgent(voice: VoiceName = "Rex", personality: Personality
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        ...(getKeyHeaders ? getKeyHeaders() : {}),
+                        ...(getKeyHeadersRef.current ? getKeyHeadersRef.current() : {}),
                     },
                     body: JSON.stringify({ tool_name: name, arguments: args }),
                 });
@@ -376,7 +379,7 @@ export function useVoiceAgent(voice: VoiceName = "Rex", personality: Personality
             // 1. Get ephemeral token
             const tokenRes = await fetch("/api/voice-token", {
                 method: "POST",
-                headers: getKeyHeaders ? getKeyHeaders() : {},
+                headers: getKeyHeadersRef.current ? getKeyHeadersRef.current() : {},
             });
             if (!tokenRes.ok) {
                 throw new Error("Failed to obtain voice session token");

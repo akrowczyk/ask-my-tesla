@@ -44,7 +44,6 @@ export default function StatusBar() {
         fetchStatus();
         const interval = setInterval(fetchStatus, 60_000);
 
-        // Re-fetch immediately when any vehicle command is executed
         const onCommand = () => setTimeout(fetchStatus, 2000);
         window.addEventListener("vehicle-command-executed", onCommand);
 
@@ -52,7 +51,7 @@ export default function StatusBar() {
             clearInterval(interval);
             window.removeEventListener("vehicle-command-executed", onCommand);
         };
-    }, []);
+    }, [fetchStatus]);
 
     return (
         <header className="status-bar">
