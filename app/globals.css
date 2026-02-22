@@ -34,7 +34,7 @@
   --glass-blur: 20px;
 
   /* Spacing */
-  --header-height: 48px;
+  --header-height: 72px;
 
   /* Font */
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont,
@@ -99,7 +99,7 @@ body {
 }
 
 .status-bar-logo-img {
-  height: 32px;
+  height: 64px;
   width: auto;
   object-fit: contain;
 }

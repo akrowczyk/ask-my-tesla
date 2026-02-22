@@ -57,7 +57,7 @@ export default function StatusBar() {
         <header className="status-bar">
             <div className="status-bar-left">
                 <img
-                    src="/grok--v2.png"
+                    src="/amt-logo.png"
                     alt="Ask My Tesla"
                     className="status-bar-logo-img"
                 />

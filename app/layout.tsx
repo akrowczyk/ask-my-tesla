@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import StatusBar from "@/components/StatusBar";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import { KeysProvider } from "@/lib/keys";
 import "./globals.css";
 
@@ -21,8 +22,18 @@ export const metadata: Metadata = {
   title: "Ask My Tesla",
   description:
     "AI-powered conversational interface for your Tesla. Chat with your car using natural language.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ask My Tesla",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 };
 
@@ -35,6 +46,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <KeysProvider>
+          <ServiceWorkerRegistrar />
           <div className="app-shell">
             <StatusBar />
             {children}
